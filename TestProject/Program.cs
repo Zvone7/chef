@@ -1,9 +1,21 @@
+using AutoMapper;
 using Work.Database;
+using Work.Implementation;
+using Work.Interfaces;
+using Work.Mappings;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddSingleton(new MockDatabase(42));
+builder.Services.AddSingleton(new MockDatabase(3));
+builder.Services.AddScoped<IRepository<User, Guid>, UserRepository>();
+var mapperConfig = new MapperConfiguration(mc =>
+{
+    mc.AddProfile(new MappingProfile());
+});
+
+IMapper mapper = mapperConfig.CreateMapper();
+builder.Services.AddSingleton(mapper);
 
 
 builder.Services.AddControllers();

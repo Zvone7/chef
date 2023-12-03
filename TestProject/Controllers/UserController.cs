@@ -1,5 +1,9 @@
+using System.Data;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Work.ApiModels;
+using Work.Database;
+using Work.Interfaces;
 
 namespace Work.Controllers
 {
@@ -7,35 +11,99 @@ namespace Work.Controllers
     [Route("api/[controller]")]
     public class UserController : ControllerBase
     {
+        private readonly IRepository<User, Guid> _userRepository_;
+        private readonly IMapper _mapper_;
+        public UserController(
+            IRepository<User, Guid> userRepository,
+            IMapper mapper)
+        {
+            _userRepository_ = userRepository;
+            _mapper_ = mapper;
+        }
 
         [HttpGet("{id}")]
-        public IActionResult Get(Guid id)
+        public ActionResult<User> Get(Guid id)
         {
-            throw new NotImplementedException("TODO");
+            try
+            {
+                return Ok(_userRepository_.Read(id));
+            }
+            catch (DataException)
+            {
+                // todo - logging
+                return NotFound($"User with guid {id} doesn't exist in database.");
+            }
+            catch (Exception ex)
+            {
+                // todo - logging
+                return BadRequest($"Unhandled error: {ex.Message}.");
+            }
         }
-        
+
         [HttpGet]
-        public IActionResult GetAll()
+        public ActionResult<IEnumerable<User>> GetAll()
         {
-            throw new NotImplementedException("TODO");
+            try
+            {
+                return Ok(_userRepository_.ReadAll());
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Unhandled error: {ex.Message}.");
+            }
         }
 
         [HttpPost]
         public IActionResult Post(UserModelDto user)
         {
-            throw new NotImplementedException("TODO");
+            try
+            {
+                _userRepository_.Create(_mapper_.Map<User>(user));
+                return Ok("User created.");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Unhandled error: {ex.Message}.");
+            }
         }
-        
+
         [HttpPut]
         public IActionResult Put(UserModelDto user)
         {
-            throw new NotImplementedException("TODO");
+            try
+            {
+                _userRepository_.Update(_mapper_.Map<User>(user));
+                return Ok("User updated.");
+            }
+            catch (DataException)
+            {
+                // todo - logging
+                return NotFound($"User with guid {user.Id} doesn't exist in database.");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Unhandled error: {ex.Message}.");
+            }
         }
 
         [HttpDelete]
         public IActionResult Delete(Guid id)
         {
-            throw new NotImplementedException("TODO");
+            try
+            {
+                var user = _userRepository_.Read(id);
+                _userRepository_.Remove(user);
+                return Ok("User deleted.");
+            }
+            catch (DataException)
+            {
+                // todo - logging
+                return NotFound($"User with guid {id} doesn't exist in database.");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Unhandled error: {ex.Message}.");
+            }
         }
 
     }

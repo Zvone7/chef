@@ -16,6 +16,7 @@ namespace Work.Implementation
             try
             {
                 var userGuid = Guid.NewGuid();
+                obj.UserId = userGuid;
                 _mockDatabase_.Users.TryAdd(userGuid, obj);
             }
             catch (Exception e)
