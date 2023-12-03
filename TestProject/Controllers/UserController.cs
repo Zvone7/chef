@@ -13,12 +13,15 @@ namespace Work.Controllers
     {
         private readonly IRepository<User, Guid> _userRepository_;
         private readonly IMapper _mapper_;
+        private readonly ILogger<UserController> _logger_;
         public UserController(
             IRepository<User, Guid> userRepository,
-            IMapper mapper)
+            IMapper mapper,
+            ILogger<UserController> logger)
         {
             _userRepository_ = userRepository;
             _mapper_ = mapper;
+            _logger_ = logger;
         }
 
         [HttpGet("{id}")]
@@ -28,15 +31,17 @@ namespace Work.Controllers
             {
                 return Ok(_userRepository_.Read(id));
             }
-            catch (DataException)
+            catch (DataException e)
             {
-                // todo - logging
-                return NotFound($"User with guid {id} doesn't exist in database.");
+                var message = $"User with guid {id} doesn't exist in database.";
+                _logger_.LogError(message, e);
+                return NotFound(message);
             }
             catch (Exception ex)
             {
-                // todo - logging
-                return BadRequest($"Unhandled error: {ex.Message}.");
+                var message = $"Unhandled error: {ex.Message}.";
+                _logger_.LogError(message, ex);
+                return BadRequest(message);
             }
         }
 
@@ -49,7 +54,9 @@ namespace Work.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest($"Unhandled error: {ex.Message}.");
+                var message = $"Unhandled error: {ex.Message}.";
+                _logger_.LogError(message, ex);
+                return BadRequest(message);
             }
         }
 
@@ -63,7 +70,9 @@ namespace Work.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest($"Unhandled error: {ex.Message}.");
+                var message = $"Unhandled error: {ex.Message}.";
+                _logger_.LogError(message, ex);
+                return BadRequest(message);
             }
         }
 
@@ -75,14 +84,17 @@ namespace Work.Controllers
                 _userRepository_.Update(_mapper_.Map<User>(user));
                 return Ok("User updated.");
             }
-            catch (DataException)
+            catch (DataException e)
             {
-                // todo - logging
-                return NotFound($"User with guid {user.Id} doesn't exist in database.");
+                var message = $"User with guid {user.Id} doesn't exist in database.";
+                _logger_.LogError(message, e);
+                return NotFound(message);
             }
             catch (Exception ex)
             {
-                return BadRequest($"Unhandled error: {ex.Message}.");
+                var message = $"Unhandled error: {ex.Message}.";
+                _logger_.LogError(message, ex);
+                return BadRequest(message);
             }
         }
 
@@ -95,14 +107,17 @@ namespace Work.Controllers
                 _userRepository_.Remove(user);
                 return Ok("User deleted.");
             }
-            catch (DataException)
+            catch (DataException e)
             {
-                // todo - logging
-                return NotFound($"User with guid {id} doesn't exist in database.");
+                var message = $"User with guid {id} doesn't exist in database.";
+                _logger_.LogError(message, e);
+                return NotFound(message);
             }
             catch (Exception ex)
             {
-                return BadRequest($"Unhandled error: {ex.Message}.");
+                var message = $"Unhandled error: {ex.Message}.";
+                _logger_.LogError(message, ex);
+                return BadRequest(message);
             }
         }
 
