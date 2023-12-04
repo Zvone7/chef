@@ -1,6 +1,6 @@
 ﻿namespace Work.ApiModels
 {
-    public class UserModelDto
+    public class UserVm
     {
         public Guid Id { get; set; }
 

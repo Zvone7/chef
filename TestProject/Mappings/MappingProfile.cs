@@ -8,13 +8,13 @@ public class MappingProfile : Profile
 {
     public MappingProfile()
     {
-        CreateMap<User, UserModelDto>()
-            .ForMember(u => u.Id, opt => opt.MapFrom(um => um.UserId))
+        CreateMap<UserDto, UserVm>()
+            .ForMember(u => u.Id, opt => opt.MapFrom(um => um.Id))
             .ForMember(u => u.Name, opt => opt.MapFrom(um => um.UserName))
             .ForMember(u => u.Birthdate, opt => opt.MapFrom(um => um.Birthday))
             ;
-        CreateMap<UserModelDto, User>()
-            .ForMember(u => u.UserId, opt => opt.MapFrom(um => um.Id))
+        CreateMap<UserVm, UserDto>()
+            .ForMember(u => u.Id, opt => opt.MapFrom(um => um.Id))
             .ForMember(u => u.UserName, opt => opt.MapFrom(um => um.Name))
             .ForMember(u => u.Birthday, opt => opt.MapFrom(um => um.Birthdate))
             ;

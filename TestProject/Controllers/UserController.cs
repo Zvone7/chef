@@ -1,125 +1,52 @@
-using System.Data;
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Work.ApiModels;
-using Work.Database;
 using Work.Interfaces;
 
-namespace Work.Controllers
+namespace Work.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class UserController : BaseController
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class UserController : ControllerBase
+    private readonly IService<UserVm, Guid> _userService_;
+    public UserController(
+        IService<UserVm, Guid> userService)
     {
-        private readonly IRepository<User, Guid> _userRepository_;
-        private readonly IMapper _mapper_;
-        private readonly ILogger<UserController> _logger_;
-        public UserController(
-            IRepository<User, Guid> userRepository,
-            IMapper mapper,
-            ILogger<UserController> logger)
-        {
-            _userRepository_ = userRepository;
-            _mapper_ = mapper;
-            _logger_ = logger;
-        }
+        _userService_ = userService;
+    }
 
-        [HttpGet("{id}")]
-        public ActionResult<User> Get(Guid id)
-        {
-            try
-            {
-                return Ok(_userRepository_.Read(id));
-            }
-            catch (DataException e)
-            {
-                var message = $"User with guid {id} doesn't exist in database.";
-                _logger_.LogError(message, e);
-                return NotFound(message);
-            }
-            catch (Exception ex)
-            {
-                var message = $"Unhandled error: {ex.Message}.";
-                _logger_.LogError(message, ex);
-                return BadRequest(message);
-            }
-        }
+    [HttpGet("{id}")]
+    public async Task<IActionResult> Get(Guid id, CancellationToken cancellationToken)
+    {
+        var res = await _userService_.ReadByIdAsync(id, cancellationToken);
+        return HandleResult(res);
+    }
 
-        [HttpGet]
-        public ActionResult<IEnumerable<User>> GetAll()
-        {
-            try
-            {
-                return Ok(_userRepository_.ReadAll());
-            }
-            catch (Exception ex)
-            {
-                var message = $"Unhandled error: {ex.Message}.";
-                _logger_.LogError(message, ex);
-                return BadRequest(message);
-            }
-        }
+    [HttpGet]
+    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    {
+        var res = await _userService_.ReadAllAsync(cancellationToken);
+        return HandleResult(res);
+    }
 
-        [HttpPost]
-        public IActionResult Post(UserModelDto user)
-        {
-            try
-            {
-                _userRepository_.Create(_mapper_.Map<User>(user));
-                return Ok("User created.");
-            }
-            catch (Exception ex)
-            {
-                var message = $"Unhandled error: {ex.Message}.";
-                _logger_.LogError(message, ex);
-                return BadRequest(message);
-            }
-        }
+    [HttpPost]
+    public async Task<IActionResult> Post(UserVm user, CancellationToken cancellationToken)
+    {
+        var res = await _userService_.CreateAsync(user, cancellationToken);
+        return HandleResult(res);
+    }
 
-        [HttpPut]
-        public IActionResult Put(UserModelDto user)
-        {
-            try
-            {
-                _userRepository_.Update(_mapper_.Map<User>(user));
-                return Ok("User updated.");
-            }
-            catch (DataException e)
-            {
-                var message = $"User with guid {user.Id} doesn't exist in database.";
-                _logger_.LogError(message, e);
-                return NotFound(message);
-            }
-            catch (Exception ex)
-            {
-                var message = $"Unhandled error: {ex.Message}.";
-                _logger_.LogError(message, ex);
-                return BadRequest(message);
-            }
-        }
+    [HttpPut]
+    public async Task<IActionResult> Put(UserVm user, CancellationToken cancellationToken)
+    {
+        var res = await _userService_.UpdateAsync(user, cancellationToken);
+        return HandleResult(res);
+    }
 
-        [HttpDelete]
-        public IActionResult Delete(Guid id)
-        {
-            try
-            {
-                var user = _userRepository_.Read(id);
-                _userRepository_.Remove(user);
-                return Ok("User deleted.");
-            }
-            catch (DataException e)
-            {
-                var message = $"User with guid {id} doesn't exist in database.";
-                _logger_.LogError(message, e);
-                return NotFound(message);
-            }
-            catch (Exception ex)
-            {
-                var message = $"Unhandled error: {ex.Message}.";
-                _logger_.LogError(message, ex);
-                return BadRequest(message);
-            }
-        }
-
+    [HttpDelete]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        var res = await _userService_.RemoveByIdAsync(id, cancellationToken);
+        return HandleResult(res);
     }
 }

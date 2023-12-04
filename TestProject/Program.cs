@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.Extensions.Logging.Console;
+using Work.ApiModels;
 using Work.Database;
 using Work.Implementation;
 using Work.Interfaces;
@@ -15,31 +16,19 @@ var loggerFactory = LoggerFactory.Create(c =>
 
 var logger = loggerFactory.CreateLogger<Program>();
 
+// Read configuration
+#if DEBUG
+builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
+#endif
+
 logger.LogInformation("*** Application started");
 
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole(r =>
-{
-    r.TimestampFormat = "yyyy.MM.dd HH:mm:ss";
-    r.IncludeScopes = true;
-    r.UseUtcTimestamp = true;
-});
-builder.Logging.AddConsole();
-builder.Logging.AddDebug();
+// Configure logging providers
+SetupLogging(builder);
 
 // Add services to the container.
-builder.Services.AddSingleton(new MockDatabase(3));
-builder.Services.AddScoped<IRepository<User, Guid>, UserRepository>();
-var mapperConfig = new MapperConfiguration(mc =>
-{
-    mc.AddProfile(new MappingProfile());
-});
-
+SetupDependencyInjection(builder);
 logger.LogInformation("*** DI initialized.");
-
-IMapper mapper = mapperConfig.CreateMapper();
-builder.Services.AddSingleton(mapper);
-
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -62,3 +51,38 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+void SetupLogging(WebApplicationBuilder b)
+{
+
+    b.Logging.ClearProviders();
+    b.Logging.AddConsole(r =>
+    {
+        r.TimestampFormat = "yyyy.MM.dd HH:mm:ss";
+        r.IncludeScopes = true;
+        r.UseUtcTimestamp = true;
+    });
+    b.Logging.AddConsole();
+    b.Logging.AddDebug();
+}
+
+void SetupDependencyInjection(WebApplicationBuilder b)
+{
+    var connectionString = builder.Configuration["ConnectionStrings:DbConnectionString"];
+    if (String.IsNullOrWhiteSpace(connectionString))
+        throw new ApplicationException("Missing connection string");
+    var dbConfig = new DbConfig(connectionString);
+
+    b.Services.AddSingleton(dbConfig);
+    b.Services.AddScoped<IService<UserVm, Guid>, UserService>();
+    b.Services.AddScoped<IRepository<UserDto, Guid>, UserRepository>();
+    b.Services.AddSingleton<IMapperWithValidation<UserDto, UserVm>, MapperWithValidation<UserDto, UserVm>>();
+
+    var mapperConfig = new MapperConfiguration(mc =>
+    {
+        mc.AddProfile(new MappingProfile());
+    });
+
+    IMapper mapper = mapperConfig.CreateMapper();
+    b.Services.AddSingleton(mapper);
+}

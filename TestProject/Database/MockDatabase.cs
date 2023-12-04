@@ -2,25 +2,25 @@
 {
     public class MockDatabase
     {
-        public Dictionary<Guid, User> Users { get; private set; }
+        public Dictionary<Guid, UserDto> Users { get; private set; }
 
-        public MockDatabase(Dictionary<Guid, User> users)
+        public MockDatabase(Dictionary<Guid, UserDto> users)
         {
             Users = users;
         }
 
         public MockDatabase(int seed)
         {
-            Users = new Dictionary<Guid, User>();
+            Users = new Dictionary<Guid, UserDto>();
             for (int i = 0; i < seed; i++)
             {
-                var user = new User
+                var user = new UserDto
                 {
-                    UserId = Guid.NewGuid(),
+                    Id = Guid.NewGuid(),
                     UserName = $"User {i}",
                     Birthday = DateTime.Now.AddYears(-i)
                 };
-                Users.Add(user.UserId, user);
+                Users.Add(user.Id, user);
             }
         }
     }

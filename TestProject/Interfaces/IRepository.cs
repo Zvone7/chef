@@ -1,11 +1,15 @@
-﻿namespace Work.Interfaces
+﻿using LanguageExt.Common;
+using Work.Database;
+
+namespace Work.Interfaces
 {
-    public interface IRepository<T,K>
+
+    public interface IRepository<T, K>
     {
-        void Create(T obj);
-        T Read(K key);    
-        IEnumerable<T> ReadAll();        
-        void Update(T obj);
-        void Remove(T obj);
+        Task<Result<UserDto>> CreateAsync(T obj, CancellationToken cancellationToken);
+        Task<Result<UserDto>> ReadByIdAsync(K id, CancellationToken cancellationToken);
+        Task<Result<IEnumerable<UserDto>>> ReadAllAsync(CancellationToken cancellationToken);
+        Task<Result<Boolean>> UpdateAsync(T obj, CancellationToken cancellationToken);
+        Task<Result<Boolean>> RemoveByIdAsync(K id, CancellationToken cancellationToken);
     }
 }

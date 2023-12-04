@@ -1,8 +1,8 @@
 ﻿namespace Work.Database
 {
-    public class User
+    public class UserDto
     {
-        public Guid UserId { get; set; }
+        public Guid Id { get; set; }
 
         public string UserName { get; set; }
 

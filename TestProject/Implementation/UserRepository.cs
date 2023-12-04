@@ -1,98 +1,118 @@
-﻿using System.Data;
+using System.Data;
+using System.Data.SqlClient;
+using Dapper;
+using LanguageExt.Common;
+using Work.ApiModels;
 using Work.Database;
 using Work.Interfaces;
 
-namespace Work.Implementation
+namespace Work.Implementation;
+
+public class UserRepository : IRepository<UserDto, Guid>
 {
-    public class UserRepository : IRepository<User, Guid>
+    private readonly String _connectionString_;
+    private readonly ILogger<UserRepository> _logger_;
+
+    public UserRepository(
+        DbConfig dbConfig,
+        ILogger<UserRepository> logger
+    )
     {
-        private readonly MockDatabase _mockDatabase_;
-        private readonly ILogger _logger_;
-        public UserRepository(
-            MockDatabase mockDatabase,
-            ILogger<UserRepository> logger)
-        {
-            _mockDatabase_ = mockDatabase;
-            _logger_ = logger;
-        }
-        public void Create(User obj)
-        {
-            try
-            {
-                var userGuid = Guid.NewGuid();
-                _logger_.LogInformation($"Creating user {obj.UserName} with guid {userGuid}.");
-                obj.UserId = userGuid;
-                _mockDatabase_.Users.TryAdd(userGuid, obj);
-            }
-            catch (Exception e)
-            {
-                _logger_.LogError($"Exception when creating user {obj.UserName}", e);
-            }
-        }
-        public User Read(Guid key)
-        {
-            try
-            {
-                _logger_.LogInformation($"Retrieving user with guid {key}.");
-                var retrieve = _mockDatabase_.Users.TryGetValue(key, out var user);
-                if (retrieve && user != null)
-                    return user;
-                throw new DataException($"User with guid {key} not found");
-            }
-            catch (Exception e)
-            {
-                _logger_.LogError($"Exception when retrieving user with guid {key}.", e);
-                throw;
-            }
-        }
-        public IEnumerable<User> ReadAll()
-        {
-            try
-            {
-                _logger_.LogInformation($"Retrieving all users.");
-                return _mockDatabase_.Users.Select(x => x.Value);
-            }
-            catch (Exception e)
-            {
-                _logger_.LogError($"Exception when fetching users.", e);
-                throw;
-            }
-        }
-        public void Update(User obj)
-        {
-            try
-            {
-                // check users exists
-                _logger_.LogInformation($"Updating user {obj.UserId}.");
-                var user = Read(obj.UserId);
-                // this method would have thrown otherwise so proceed with update logic
+        _connectionString_ = dbConfig.ConnectionString;
+        _logger_ = logger;
+    }
 
-                var userInDb = _mockDatabase_.Users.Where(x => x.Key.Equals(obj.UserId))
-                    .Select(x => x.Value)
-                    .First();
-
-                userInDb.UserName = obj.UserName;
-                userInDb.Birthday = obj.Birthday;
-            }
-            catch (Exception e)
-            {
-                _logger_.LogError($"Exception when updating user with guid {obj.UserId}.", e);
-            }
-        }
-        public void Remove(User obj)
+    public async Task<Result<UserDto>> CreateAsync(UserDto obj, CancellationToken cancellationToken)
+    {
+        try
         {
-            try
+            using IDbConnection dbConnection = new SqlConnection(_connectionString_);
+            dbConnection.Open();
+            var query = "INSERT INTO UserTable (Id, UserName, Birthday) " +
+                        "OUTPUT INSERTED.Id " +
+                        "VALUES (@Id, @UserName, @Birthday)";
+            var id = await dbConnection.ExecuteScalarAsync<Guid>(query, obj);
+            return new Result<UserDto>(obj);
+        }
+        catch (Exception e)
+        {
+            _logger_.LogError(e, $"Exception on {nameof(CreateAsync)}.");
+            return new Result<UserDto>(e);
+        }
+    }
+    public async Task<Result<UserDto>> ReadByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using IDbConnection dbConnection = new SqlConnection(_connectionString_);
+            dbConnection.Open();
+            return new Result<UserDto>(
+                await dbConnection.QueryFirstOrDefaultAsync<UserDto>(
+                    "SELECT * FROM UserTable WHERE Id = @Id",
+                    new { Id = id }));
+        }
+        catch (Exception e)
+        {
+            _logger_.LogError(e, $"Exception on {nameof(ReadByIdAsync)}.");
+            return new Result<UserDto>(e);
+        }
+    }
+    public async Task<Result<IEnumerable<UserDto>>> ReadAllAsync( CancellationToken cancellationToken)
+    {
+        try
+        {
+            using IDbConnection dbConnection = new SqlConnection(_connectionString_);
+            dbConnection.Open();
+            return new Result<IEnumerable<UserDto>>(
+                await dbConnection.QueryAsync<UserDto>(
+                    "SELECT * FROM UserTable"));
+        }
+        catch (Exception e)
+        {
+            _logger_.LogError(e, $"Exception on {nameof(ReadAllAsync)}.");
+            return new Result<IEnumerable<UserDto>>(e);
+        }
+    }
+    public async Task<Result<Boolean>> UpdateAsync(UserDto obj, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using IDbConnection dbConnection = new SqlConnection(_connectionString_);
+            dbConnection.Open();
+            var query = "Update UserTable Set " +
+                        "UserName = @UserName, " +
+                        "Birthday = @Birthday " +
+                        "WHERE Id = @Id";
+            await dbConnection.ExecuteScalarAsync<Guid>(query, new
             {
-                _logger_.LogInformation($"Deleting user with guid {obj.UserId}.");
-                // check users exists
-                var user = Read(obj.UserId);
-                // this method would have thrown otherwise so proceed with delete logic
-                _mockDatabase_.Users.Remove(obj.UserId);
-            }
-            catch (Exception e)
-            {
-                _logger_.LogError($"Exception when deleting user {obj.UserName}.", e);
-            }
+                Id = obj.Id,
+                UserName = obj.UserName,
+                Birthday = obj.Birthday
+
+            });
+            return new Result<Boolean>(true);
+        }
+        catch (Exception e)
+        {
+            _logger_.LogError(e, $"Exception on {nameof(UpdateAsync)}.");
+            return new Result<Boolean>(e);
+        }
+    }
+    public async Task<Result<Boolean>> RemoveByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using IDbConnection dbConnection = new SqlConnection(_connectionString_);
+            dbConnection.Open();
+            await dbConnection.ExecuteAsync(
+                "DELETE FROM UserTable WHERE Id = @Id",
+                new { Id = id });
+            return new Result<Boolean>(true);
+        }
+        catch (Exception e)
+        {
+            _logger_.LogError(e, $"Exception on {nameof(RemoveByIdAsync)}.");
+            return new Result<Boolean>(e);
         }
     }
 }
